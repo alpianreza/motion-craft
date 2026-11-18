@@ -1,0 +1,26 @@
+{
+  "name": "motion-craft",
+  "displayName": "MotionCraft",
+  "version": "1.0.0",
+  "description": "Turn a single story idea into studio-grade 9:16 Shorts & 16:9 Explainer animations (15s to 10 min) across 16 visual categories (3D Monuments, Isometric, Stickman 3D, GLSL Black Hole, Natural Earth Maps, Ocean 3D, Anatomy, Islamic, Folklore, Cartoon & 2D). Outputs a standalone index.html, source ZIP, script Markdown, and deterministic MP4.",
+  "author": {
+    "name": "Alpian Reza",
+    "url": "https://github.com/alpianreza"
+  },
+  "homepage": "https://github.com/alpianreza/motion-craft",
+  "repository": "https://github.com/alpianreza/motion-craft",
+  "license": "MIT",
+  "keywords": [
+    "motion-graphics",
+    "explainer",
+    "shorts",
+    "animation",
+    "threejs",
+    "gsap",
+    "d3-geo",
+    "3d",
+    "isometric",
+    "stickman",
+    "video"
+  ]
+}

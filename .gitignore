@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+exports/
+tmp/
+*.mp4
+*.wav
+*.log
+.DS_Store
+Thumbs.db

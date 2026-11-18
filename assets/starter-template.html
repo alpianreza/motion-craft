@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>/*__PAGE_TITLE__*/</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@700&family=Fredoka:wght@600;700&family=JetBrains+Mono:wght@700&family=Playfair+Display:ital,wght@0,600;0,700;1,600;1,700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; background: #090d16; overflow: hidden; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    #stage { position: absolute; left: 50%; top: 50%; transform-origin: center center; overflow: hidden; background: #101829; box-shadow: 0 24px 70px rgba(0,0,0,0.65); }
+    .mf-view { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+    #hud { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(13,20,40,0.92); color: #fef6e0; border: 1.5px solid rgba(254,246,224,0.22); border-radius: 999px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+    #hud button { background: #f9d45c; color: #121a33; border: none; border-radius: 999px; padding: 6px 13px; font-weight: 800; font-size: 12px; cursor: pointer; white-space: nowrap; }
+    #hud button.secondary { background: rgba(255,255,255,0.12); color: #fef6e0; border: 1px solid rgba(254,246,224,0.25); }
+    #hud input { width: 220px; accent-color: #f9d45c; cursor: pointer; }
+    #hud span { font-family: 'JetBrains Mono', monospace; font-size: 12px; min-width: 96px; text-align: center; }
+    #mf-error-overlay { display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(15, 23, 42, 0.95); color: #fecaca; padding: 40px; font-family: 'JetBrains Mono', monospace; font-size: 16px; line-height: 1.55; overflow: auto; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <svg style="position:absolute;width:0;height:0;pointer-events:none" aria-hidden="true">
+    <defs>
+      <filter id="mf-boil-0" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="11" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+      <filter id="mf-boil-1" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="27" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="G" yChannelSelector="B"/></filter>
+      <filter id="mf-boil-2" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="43" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="B" yChannelSelector="R"/></filter>
+      <filter id="mf-boil-3" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="2" seed="67" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="B"/></filter>
+      <filter id="mf-watercolor" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="4" seed="19" result="wcNoise"/><feDisplacementMap in="SourceGraphic" in2="wcNoise" scale="16" xChannelSelector="R" yChannelSelector="G" result="wcDisp"/><feGaussianBlur in="wcDisp" stdDeviation="1.1"/></filter>
+      <filter id="mf-paper-grain" x="0%" y="0%" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="5" result="noise"/><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.06 0"/></filter>
+      <filter id="mf-drop-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="4" dy="8" stdDeviation="8" flood-color="#0a0e1a" flood-opacity="0.22"/></filter>
+      <filter id="mf-paper-cut" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="1" flood-color="#ffffff" flood-opacity="0.35"/><feDropShadow dx="4" dy="11" stdDeviation="7" flood-color="#0b1324" flood-opacity="0.34"/></filter>
+      <filter id="mf-sketch-ink" x="-8%" y="-8%" width="116%" height="116%"><feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" seed="31" result="inkN"/><feDisplacementMap in="SourceGraphic" in2="inkN" scale="2.2" xChannelSelector="R" yChannelSelector="G"/></filter>
+      <filter id="mf-glow-bloom" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur1"/><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur2"/><feMerge><feMergeNode in="blur1"/><feMergeNode in="blur2"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+  </svg>
+
+  <div id="stage"></div>
+  <div id="hud">
+    <button id="playBtn">⏸ Pause</button>
+    <input id="scrub" type="range" min="0" max="20" step="0.02" value="0" />
+    <span id="clock">0.0s / 20s</span>
+    <button id="ratioBtn" class="secondary" title="Ganti Rasio 9:16 Shorts / 16:9 Video">9:16</button>
+  </div>
+  <div id="mf-error-overlay"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-array@3/dist/d3-array.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-geo@3/dist/d3-geo.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    window.THREE = THREE;
+    window.__THREE_READY__ = true;
+    window.dispatchEvent(new Event('three-ready'));
+  </script>
+  <script>window.__WORLD_TOPO__ = /*__WORLD_TOPO__*/ null;</script>
+  <script>/*__SFX_SYNTH__*/</script>
+  <script>/*__MOTION_ENGINE__*/</script>
+  <script>
+    const PROJECT = /*__PROJECT_JSON__*/ null;
+    const params = new URLSearchParams(location.search);
+    const isClean = params.get('clean') === '1';
+    if (isClean) {
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('stage').style.boxShadow = 'none';
+    }
+
+    let currentAspect = params.get('aspect') || (PROJECT && PROJECT.aspectRatio) || '9:16';
+    let activeTl = null;
+    let sfxPlayer = typeof window.__createSfx === 'function' ? window.__createSfx() : { unlock() {}, reset() {}, triggerCrossing() {} };
+    document.addEventListener('pointerdown', () => sfxPlayer.unlock(), { passive: true });
+
+    function showError(err) {
+      const msg = err && err.stack ? err.stack : String(err);
+      window.MOTION_ERROR = msg;
+      const box = document.getElementById('mf-error-overlay');
+      box.style.display = 'block';
+      box.textContent = 'KESALAHAN ANIMASI:\n\n' + msg;
+    }
+
+    async function ensureDeps() {
+      const pThree = window.__THREE_READY__
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            const timer = setTimeout(resolve, 4000);
+            window.addEventListener('three-ready', () => { clearTimeout(timer); resolve(); }, { once: true });
+          });
+
+      const needsMap = PROJECT && /realWorldMap/.test(PROJECT.sceneCode || '');
+      const pMap = (!needsMap || window.__WORLD_TOPO__)
+        ? Promise.resolve()
+        : fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-50m.json')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((topo) => { if (topo) window.__WORLD_TOPO__ = topo; })
+            .catch(() => {});
+
+      await Promise.all([pThree, pMap]);
+    }
+
+    function mountStage(aspect) {
+      try {
+        if (!PROJECT) throw new Error('Data PROJECT belum diisi.');
+        if (activeTl) { activeTl.kill(); activeTl = null; }
+        currentAspect = aspect === '9:16' ? '9:16' : '16:9';
+
+        const stage = document.getElementById('stage');
+        stage.innerHTML = '';
+        const W = currentAspect === '9:16' ? 1080 : 1920;
+        const H = currentAspect === '9:16' ? 1920 : 1080;
+        const DUR = Math.max(4, Number(PROJECT.duration) || 20);
+        stage.style.width = W + 'px';
+        stage.style.height = H + 'px';
+
+        const fit = () => {
+          if (isClean) {
+            stage.style.left = '0';
+            stage.style.top = '0';
+            stage.style.transform = 'none';
+            return;
+          }
+          const pad = 0.94;
+          const s = Math.min((innerWidth * pad) / W, (innerHeight * pad) / H);
+          stage.style.left = '50%';
+          stage.style.top = '50%';
+          stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+        };
+        window.onresize = fit;
+        fit();
+
+        const tl = window.MF.initStage({ W, H, DUR, FPS: 30, stage });
+        activeTl = tl;
+        const fn = new Function('MF', 'stage', 'tl', 'W', 'H', 'DUR', PROJECT.sceneCode || '');
+        fn(window.MF, stage, tl, W, H, DUR);
+        tl.to({}, { duration: 0.01 }, DUR);
+
+        const info = window.MF.getRuntimeInfo();
+        const scrub = document.getElementById('scrub');
+        const clock = document.getElementById('clock');
+        const playBtn = document.getElementById('playBtn');
+        const ratioBtn = document.getElementById('ratioBtn');
+        scrub.max = String(DUR);
+        ratioBtn.textContent = currentAspect === '9:16' ? '📱 9:16 → 16:9' : '🖥️ 16:9 → 9:16';
+        let prevT = 0;
+
+        tl.eventCallback('onUpdate', () => {
+          const t = tl.time();
+          info.runTicks(t);
+          if (!tl.paused()) sfxPlayer.triggerCrossing(prevT, t, info.sfxCues);
+          prevT = t;
+          scrub.value = String(t);
+          clock.textContent = t.toFixed(1) + 's / ' + DUR + 's';
+        });
+        tl.eventCallback('onComplete', () => {
+          if (!isClean) { prevT = 0; sfxPlayer.reset(); tl.play(0); }
+        });
+
+        playBtn.onclick = () => {
+          sfxPlayer.unlock();
+          if (tl.paused()) { tl.play(); playBtn.textContent = '⏸ Pause'; }
+          else { tl.pause(); playBtn.textContent = '▶ Play'; }
+        };
+        scrub.oninput = (e) => {
+          tl.pause(Number(e.target.value));
+          info.runTicks(tl.time());
+          prevT = tl.time();
+          sfxPlayer.reset();
+          playBtn.textContent = '▶ Play';
+        };
+        ratioBtn.onclick = () => {
+          mountStage(currentAspect === '9:16' ? '16:9' : '9:16');
+        };
+
+        window.MOTION = {
+          ready: true,
+          DURATION: DUR,
+          FPS: 30,
+          WIDTH: W,
+          HEIGHT: H,
+          aspectRatio: currentAspect,
+          tl,
+          sfxCues: info.sfxCues,
+          seek(t) {
+            const safeT = Math.max(0, Math.min(DUR, Number(t) || 0));
+            tl.pause(safeT, false);
+            info.runTicks(safeT);
+          },
+          play() { tl.play(); },
+          pause() { tl.pause(); },
+        };
+
+        info.runTicks(0);
+        if (isClean) tl.pause(0);
+        else { tl.play(0); playBtn.textContent = '⏸ Pause'; }
+      } catch (err) {
+        showError(err);
+      }
+    }
+
+    ensureDeps().then(() => mountStage(currentAspect));
+  </script>
+</body>
+</html>

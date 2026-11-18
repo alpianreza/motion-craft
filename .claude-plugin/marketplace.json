@@ -1,0 +1,32 @@
+{
+  "name": "motion-craft",
+  "description": "MotionCraft — universal agent skill for 16-category 3D & 2D explainer videos and Shorts (9:16 & 16:9, up to 10 minutes).",
+  "owner": {
+    "name": "Alpian Reza"
+  },
+  "plugins": [
+    {
+      "name": "motion-craft",
+      "source": "./",
+      "displayName": "MotionCraft",
+      "description": "Build studio-grade 9:16 Shorts and 16:9 Explainer animations across 16 visual categories (3D, Isometric, House Cutaway, Stickman 3D, Astronomy GLSL, Wildlife, Ocean 3D, Science, History, Natural Earth Maps, Islamic, Geography, Anatomy, Folklore, Cartoon, 2D) as a standalone playable HTML, source ZIP, and MP4.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Alpian Reza",
+        "url": "https://github.com/alpianreza"
+      },
+      "homepage": "https://github.com/alpianreza/motion-craft",
+      "license": "MIT",
+      "keywords": [
+        "motion-graphics",
+        "explainer",
+        "shorts",
+        "animation",
+        "threejs",
+        "gsap",
+        "d3-geo",
+        "video"
+      ]
+    }
+  ]
+}
