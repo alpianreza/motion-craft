@@ -4187,6 +4187,7 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(W, stageH, false);
     renderer.setPixelRatio(1);
+    renderer.localClippingEnabled = true;
 
     parent.style.background = `radial-gradient(circle at 50% 45%, ${bgTop} 0%, ${bgBot} 85%)`;
 
@@ -4207,9 +4208,284 @@
     rim.position.set(-12, 6, -10);
     scene.add(rim);
 
-    const handle = { THREE, renderer, scene, camera, canvas, baseHalfW: halfW, baseHalfH: halfH };
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 12);
+    const setCutaway = (progress = 0, minVal = 4.2, maxVal = 0.0) => {
+      const u = clamp(progress, 0, 1);
+      clipPlane.constant = lerp(minVal, maxVal, u);
+    };
+
+    const handle = { THREE, renderer, scene, camera, canvas, baseHalfW: halfW, baseHalfH: halfH, clipPlane, setCutaway };
     _state.threeWorlds.push(handle);
     return handle;
+  }
+
+  function cutawayMachine3D(iso, { scale = 1 } = {}) {
+    const { THREE, scene, clipPlane } = iso;
+    const root = new THREE.Group();
+    root.scale.setScalar(scale);
+    scene.add(root);
+
+    // 1. Procedural brushed-metal texture for outer casing & fins
+    const metalCanvas = document.createElement('canvas');
+    metalCanvas.width = 256;
+    metalCanvas.height = 256;
+    const mctx = metalCanvas.getContext('2d');
+    mctx.fillStyle = '#64748b';
+    mctx.fillRect(0, 0, 256, 256);
+    for (let i = 0; i < 180; i++) {
+      mctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.12)';
+      mctx.fillRect(0, (i * 7) % 256, 256, 2);
+    }
+    const metalTex = new THREE.CanvasTexture(metalCanvas);
+
+    // Materials clipped by clipPlane (outer housing that gets sliced open by laser!)
+    const matBlockClip = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      map: metalTex,
+      metalness: 0.68,
+      roughness: 0.32,
+      side: THREE.DoubleSide,
+      clippingPlanes: [clipPlane],
+      clipShadows: true,
+    });
+    const matHeadClip = new THREE.MeshStandardMaterial({
+      color: 0x334155,
+      metalness: 0.75,
+      roughness: 0.25,
+      side: THREE.DoubleSide,
+      clippingPlanes: [clipPlane],
+    });
+    const matSumpClip = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.6,
+      roughness: 0.4,
+      side: THREE.DoubleSide,
+      clippingPlanes: [clipPlane],
+    });
+
+    // Outer Cylinder Block Group (sliced by clipPlane)
+    const blockGroup = new THREE.Group();
+    root.add(blockGroup);
+
+    // Hollow cylinder wall (lathe profile so it has real wall thickness when sliced!)
+    const wallPts = [
+      new THREE.Vector2(1.48, -1.6),
+      new THREE.Vector2(2.05, -1.6),
+      new THREE.Vector2(2.05, 2.2),
+      new THREE.Vector2(1.48, 2.2),
+      new THREE.Vector2(1.48, -1.6),
+    ];
+    const cylinderWall = new THREE.Mesh(new THREE.LatheGeometry(wallPts, 48), matBlockClip);
+    blockGroup.add(cylinderWall);
+
+    // 7 Cooling Fins around the cylinder block (also clipped by laser plane)
+    for (let i = 0; i < 7; i++) {
+      const finY = -1.1 + i * 0.48;
+      const finPts = [
+        new THREE.Vector2(2.02, finY - 0.06),
+        new THREE.Vector2(2.55, finY - 0.06),
+        new THREE.Vector2(2.55, finY + 0.06),
+        new THREE.Vector2(2.02, finY + 0.06),
+      ];
+      const fin = new THREE.Mesh(new THREE.LatheGeometry(finPts, 48), matBlockClip);
+      blockGroup.add(fin);
+    }
+
+    // Top Cylinder Head Cap (explodes upward + clipped)
+    const headCapGroup = new THREE.Group();
+    root.add(headCapGroup);
+    const headBase = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.75, 4.6), matHeadClip);
+    headBase.position.y = 2.65;
+    headCapGroup.add(headBase);
+
+    const boltGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.45, 6);
+    const boltMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.2, clippingPlanes: [clipPlane] });
+    [[-1.8, -1.8], [1.8, -1.8], [-1.8, 1.8], [1.8, 1.8]].forEach(([bx, bz]) => {
+      const bolt = new THREE.Mesh(boltGeo, boltMat);
+      bolt.position.set(bx, 3.15, bz);
+      headCapGroup.add(bolt);
+    });
+
+    // Spark Plug on Top Center
+    const sparkBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.22, 0.22, 1.1, 16),
+      new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 })
+    );
+    sparkBody.position.y = 3.35;
+    headCapGroup.add(sparkBody);
+
+    // Bottom Crankcase Sump (explodes downward + clipped)
+    const sumpGroup = new THREE.Group();
+    root.add(sumpGroup);
+    const sumpMesh = new THREE.Mesh(new THREE.CylinderGeometry(2.35, 1.95, 1.7, 36, 1, false), matSumpClip);
+    sumpMesh.position.y = -2.55;
+    sumpGroup.add(sumpMesh);
+
+    // Glowing Laser Cut Plane Indicator Ring (visible while slicing!)
+    const laserMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+    const laserFrame = new THREE.Mesh(new THREE.RingGeometry(2.58, 2.74, 48), laserMat);
+    root.add(laserFrame);
+
+    // =======================================================================
+    // INTERNAL MOVING MECHANISM (Never clipped — revealed inside!)
+    // =======================================================================
+    const matPiston = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.82, roughness: 0.22 });
+    const matGoldRing = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.88, roughness: 0.2 });
+    const matRod = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.75, roughness: 0.28 });
+    const matCrank = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.22 });
+
+    // Piston + 3 Compression Rings
+    const pistonGroup = new THREE.Group();
+    root.add(pistonGroup);
+    const pistonBody = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.42, 1.15, 36), matPiston);
+    pistonGroup.add(pistonBody);
+    [-0.32, 0, 0.32].forEach((ry) => {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.43, 0.045, 12, 36), matGoldRing);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = ry;
+      pistonGroup.add(ring);
+    });
+    const wristPin = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 2.2, 16), matGoldRing);
+    wristPin.rotation.x = Math.PI / 2;
+    pistonGroup.add(wristPin);
+
+    // Connecting Rod
+    const conRodGroup = new THREE.Group();
+    root.add(conRodGroup);
+    const rodShaft = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.15, 0.24), matRod);
+    rodShaft.position.y = -1.05;
+    conRodGroup.add(rodShaft);
+
+    // Crankshaft Assembly
+    const crankGroup = new THREE.Group();
+    crankGroup.position.y = -2.1;
+    root.add(crankGroup);
+    const mainJournal = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 3.2, 24), matCrank);
+    mainJournal.rotation.x = Math.PI / 2;
+    crankGroup.add(mainJournal);
+
+    const webGeo = new THREE.BoxGeometry(1.1, 1.75, 0.28);
+    const webFront = new THREE.Mesh(webGeo, matCrank);
+    webFront.position.set(0, 0.35, 0.55);
+    const webBack = new THREE.Mesh(webGeo, matCrank);
+    webBack.position.set(0, 0.35, -0.55);
+    crankGroup.add(webFront, webBack);
+
+    const crankRadius = 0.82;
+    const crankPin = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 1.1, 20), matGoldRing);
+    crankPin.rotation.x = Math.PI / 2;
+    crankPin.position.set(0, crankRadius, 0);
+    crankGroup.add(crankPin);
+
+    // Intake (Blue) & Exhaust (Orange) Valves
+    const mkValve = (col, xPos) => {
+      const vg = new THREE.Group();
+      vg.position.set(xPos, 2.15, 0);
+      const matV = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.25, metalness: 0.7, roughness: 0.25 });
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.95, 12), matV);
+      stem.position.y = 0.45;
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.12, 0.14, 20), matV);
+      vg.add(stem, head);
+      headCapGroup.add(vg);
+      return vg;
+    };
+    const intakeValve = mkValve(0x38bdf8, -0.68);
+    const exhaustValve = mkValve(0xf97316, 0.68);
+
+    // Combustion Flame / Plasma Flash inside Chamber
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0 });
+    const flameMesh = new THREE.Mesh(new THREE.SphereGeometry(1.18, 24, 16), flameMat);
+    flameMesh.scale.set(1, 0.48, 1);
+    flameMesh.position.y = 1.75;
+    root.add(flameMesh);
+
+    const sparkLight = new THREE.PointLight(0xf97316, 0, 8);
+    sparkLight.position.set(0, 1.8, 0);
+    root.add(sparkLight);
+
+    // Side Timing Gears Group (Explodes outward along X/-Z!)
+    const gearStage = new THREE.Group();
+    root.add(gearStage);
+    const buildGear = (radius, teeth, thickness, color) => {
+      const g = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.8, roughness: 0.25 });
+      const disk = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, thickness, 32), mat);
+      disk.rotation.x = Math.PI / 2;
+      g.add(disk);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.38, radius * 0.38, thickness * 1.4, 20), matGoldRing);
+      hub.rotation.x = Math.PI / 2;
+      g.add(hub);
+      const toothGeo = new THREE.BoxGeometry(0.18, 0.24, thickness * 0.95);
+      for (let i = 0; i < teeth; i++) {
+        const ang = (i / teeth) * Math.PI * 2;
+        const tooth = new THREE.Mesh(toothGeo, mat);
+        tooth.position.set(Math.cos(ang) * (radius + 0.08), Math.sin(ang) * (radius + 0.08), 0);
+        tooth.rotation.z = ang;
+        g.add(tooth);
+      }
+      return g;
+    };
+    const gearDrive = buildGear(0.95, 14, 0.28, 0x0ea5e9);
+    gearDrive.position.set(0, -2.1, -1.65);
+    const gearCam = buildGear(1.35, 20, 0.28, 0xf59e0b);
+    gearCam.position.set(1.85, -0.75, -1.65);
+    gearStage.add(gearDrive, gearCam);
+
+    const rodLength = 2.15;
+
+    function step(t, { rpm = 95, cutaway = 0, explode = 0 } = {}) {
+      // 1. Laser Cutaway plane slice (0 = closed, 1 = sliced through center z=0)
+      const cutU = smooth(clamp(cutaway, 0, 1));
+      clipPlane.constant = lerp(3.4, 0.0, cutU);
+      laserFrame.position.z = clipPlane.constant;
+      laserMat.opacity = cutU > 0.02 && cutU < 0.96 ? 0.85 : 0.0;
+
+      // 2. Exploded View separation (0 = assembled, 1 = exploded layers)
+      const expU = smooth(clamp(explode, 0, 1));
+      headCapGroup.position.y = expU * 2.15;
+      sumpGroup.position.y = -expU * 1.85;
+      gearStage.position.z = -expU * 1.95;
+      gearStage.position.x = expU * 0.85;
+
+      // 3. Exact Slider-Crank Kinematics + 4-Stroke Combustion Cycle
+      const omega = (rpm / 60) * Math.PI * 2;
+      const theta = t * omega;
+      crankGroup.rotation.z = -theta;
+
+      const pinX = Math.sin(theta) * crankRadius;
+      const pinY = -2.1 + Math.cos(theta) * crankRadius;
+
+      const sinPhi = clamp(pinX / rodLength, -0.85, 0.85);
+      const phi = Math.asin(sinPhi);
+      const pistonY = pinY + Math.cos(phi) * rodLength;
+
+      pistonGroup.position.set(0, pistonY, 0);
+      conRodGroup.position.set(0, pistonY, 0);
+      conRodGroup.rotation.z = phi;
+
+      // 4. Timing Gears counter-rotation
+      gearDrive.rotation.z = -theta;
+      gearCam.rotation.z = theta * (14 / 20) + 0.16;
+
+      // 5. Valves & Combustion Flash (every 2 crank revolutions = 4*PI)
+      const cycle = mod(theta, Math.PI * 4);
+      // Intake stroke (0 .. PI)
+      const intakeLift = cycle < Math.PI ? Math.sin(cycle) * 0.34 : 0;
+      intakeValve.position.y = 2.15 - intakeLift;
+      // Exhaust stroke (3*PI .. 4*PI)
+      const exhaustLift = cycle > Math.PI * 3 ? Math.sin(cycle - Math.PI * 3) * 0.34 : 0;
+      exhaustValve.position.y = 2.15 - exhaustLift;
+
+      // Ignition flash right around Top Dead Center of compression/power (2*PI)
+      const distFromIgnite = Math.abs(cycle - Math.PI * 2);
+      const flash = clamp(1 - distFromIgnite / 0.55, 0, 1);
+      flameMat.opacity = flash * 0.88;
+      flameMesh.scale.set(0.85 + flash * 0.35, 0.32 + flash * 0.45, 0.85 + flash * 0.35);
+      sparkLight.intensity = flash * 6.5;
+    }
+
+    step(0, { rpm: 95, cutaway: 0, explode: 0 });
+    return { root, blockGroup, headCapGroup, sumpGroup, pistonGroup, crankGroup, gearStage, step };
   }
 
   // =========================================================================
@@ -4767,6 +5043,7 @@
     underwaterWorld3D,
     realisticSwimmer3D,
     isoThreeStage,
+    cutawayMachine3D,
     stickmanStage3D,
     stickmanActor3D,
     reededCoin3D,

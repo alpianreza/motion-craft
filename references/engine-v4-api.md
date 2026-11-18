@@ -34,8 +34,9 @@ Di dalam `sceneCode`, fungsi dieksekusi dengan argumen `(MF, stage, tl, W, H, DU
 - **Monumen 3D (`3d`):**
   - `const m3d = MF.monumentStage3D(view, { horizonColor, midSkyColor, zenithColor, W, H })` -> `{ THREE, renderer, scene, camera, canvas }`
   - `const eiffel = MF.proceduralEiffelTower(m3d)` -> `eiffel.pulseRadio(t, activeFrom)`
-- **Isometrik Ortografis 3D (`isometrik`):**
-  - `const iso = MF.isoThreeStage(view, { bgTop, bgBot, orthoSize: 6.4, W, H })` -> `{ THREE, renderer, scene, camera }`
+- **Isometrik Ortografis 3D & Mesin Dibelah / Explode (`isometrik`):**
+  - `const iso = MF.isoThreeStage(view, { bgTop, bgBot, orthoSize: 6.4, W, H })` -> `{ THREE, renderer, scene, camera, clipPlane, setCutaway(progress) }`
+  - `const eng = MF.cutawayMachine3D(iso, { scale: 1 })` -> `eng.step(t, { rpm: 95, cutaway: 0..1, explode: 0..1 })` *(mesin 4-tak lengkap blok sirip pendingin yang dibelah laser `clipPlane` + dibongkar `explode` memperlihatkan piston, setang seher, kruk as, klep intake/exhaust, busi & ledakan api pembakaran, serta roda gigi timing)*
 - **Stickman 3D (`stickman-3d`):**
   - `const st3d = MF.stickmanStage3D(view, { wallTop, wallBot, tableColor, W, H })`
   - `const hero = MF.stickmanActor3D(st3d, { x, y, z, shirtColor, scale })` -> `{ actor, armL, armR, setMood('shock'|'happy') }`

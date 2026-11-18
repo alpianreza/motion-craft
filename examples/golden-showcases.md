@@ -121,31 +121,36 @@ MF.onTick((t) => {
 
 ---
 
-## Contoh 4: Kategori `isometrik` (Bongkar Lapisan Mesin Ortografis 3D)
+## Contoh 4: Kategori `isometrik` (Mesin 3D Dibelah Laser `cutaway` + Dibongkar `explode`)
 ```javascript
 const view = MF.H('div', { className: 'mf-view' }, stage);
-const iso = MF.isoThreeStage(view, { bgTop: '#162844', bgBot: '#070E1A', orthoSize: 6.4, W, H });
-const T3 = iso.THREE;
+const iso = MF.isoThreeStage(view, { bgTop: '#162844', bgBot: '#070E1A', orthoSize: 6.2, W, H });
+const eng = MF.cutawayMachine3D(iso, { scale: 1.05 });
 
-const mkLayer = (w, h, d, col, op = 1) => new T3.Mesh(
-  new T3.BoxGeometry(w, h, d),
-  new T3.MeshStandardMaterial({ color: col, metalness: 0.55, roughness: 0.3, transparent: op < 1, opacity: op })
-);
-const base = mkLayer(4.6, 0.28, 8.2, 0x334155);
-const cathode = mkLayer(3.9, 0.22, 5.8, 0x0284c7);
-const anode = mkLayer(3.9, 0.22, 5.8, 0xd97706);
-const glass = mkLayer(4.5, 0.12, 8.0, 0x38bdf8, 0.42);
-iso.scene.add(base, cathode, anode, glass);
+MF.highlightHeadline(view, {
+  tl, at: 0, outAt: 7.0,
+  before: 'Apa yang terjadi di dalam', highlight: 'mesin 4-tak saat menyala?',
+  y: H * 0.065, color: '#F8FAFC', pillColor: '#0284C7', size: W < H ? 50 : 56,
+});
+
+MF.leaderCallout(view, {
+  tl, at: 7.2, outAt: 14.5,
+  targetX: W * 0.5, targetY: H * 0.48,
+  labelX: W < H ? W * 0.08 : W * 0.56, labelY: H * 0.16,
+  title: 'RUANG BAKAR & PISTON',
+  subtitle: 'dinding silinder dibelah (clipping plane) & kepala blok di-explode',
+  color: '#FFFFFF', dotColor: '#38BDF8',
+});
 
 MF.onTick((t) => {
-  const ex = MF.smooth(MF.clamp((t - 0.6) / 2.2, 0, 1));
-  base.position.y = -2.0 * ex;
-  cathode.position.y = -0.7 * ex;
-  anode.position.y = 1.1 * ex;
-  glass.position.y = 2.5 * ex;
-  const rot = 0.78 + Math.sin(t * 0.3) * 0.14;
-  iso.camera.position.set(Math.cos(rot) * 20, 14.5, Math.sin(rot) * 20);
-  iso.camera.lookAt(0, 0, 0);
+  // 0..3s: dinding blok silinder dibelah laser; 7..11s: kepala silinder & roda gigi di-explode
+  const cut = MF.smooth(MF.clamp((t - 0.8) / 2.4, 0, 1));
+  const exp = MF.smooth(MF.clamp((t - 7.0) / 2.2, 0, 1));
+  eng.step(t, { rpm: 110, cutaway: cut, explode: exp });
+
+  const rot = 0.72 + Math.sin(t * 0.32) * 0.22;
+  iso.camera.position.set(Math.sin(rot) * 18, 11.5, Math.cos(rot) * 18);
+  iso.camera.lookAt(0, 0.2, 0);
 });
 ```
 
