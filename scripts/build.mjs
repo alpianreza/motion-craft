@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MotionCraft Standalone Builder (Zero External Dependencies)
+ * MotionCraft Community Edition (Free) — Standalone Builder (6 Free Categories, max 60s)
  * Usage:
  *   node scripts/build.mjs --spec path/to/spec.json [--out-dir path/to/output]
  */
@@ -13,35 +13,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SKILL_ROOT = path.resolve(__dirname, '..');
 const ASSETS_DIR = path.join(SKILL_ROOT, 'assets');
 
-const STYLE_LABELS = {
-  'monumen-3d': { category: '3D', name: 'Monumen & Rekonstruksi 3D' },
-  'isometrik-mesin': { category: 'Isometrik', name: 'Bedah Mesin Isometrik 3D' },
-  'isometrik-cutaway': { category: 'Bongkar Rumah', name: 'Bongkar Rumah Cutaway' },
+const FREE_STYLES = {
   'stickman-3d': { category: 'Stickman 3D', name: 'Stickman 3D & Prop Fisik' },
-  'sinematik-3d': { category: 'Astronomi', name: 'Kosmos & GLSL Black Hole' },
-  'dunia-hewan': { category: 'Dunia Hewan', name: 'Satwa & Indera Alam' },
-  'biota-laut-3d': { category: 'Laut', name: 'Biota Laut 3D Volumetrik' },
-  'neon-mikro': { category: 'Laut', name: 'Bioluminesensi Laut Dalam' },
+  'isometrik-cutaway': { category: 'Bongkar Rumah', name: 'Bongkar Rumah Cutaway' },
+  'peta-perkamen': { category: 'Peta', name: 'Peta Pelayaran Perkamen' },
   'kertas-cutout': { category: 'Sains & Alam', name: 'Diorama Kertas Cutout' },
   'komik-manga': { category: 'Sains & Alam', name: 'Komik Sains Dinamis' },
-  'tanah-liat-3d': { category: 'Sains & Alam', name: 'Claymation 3D Stop-Motion' },
-  'kolase-jurnalisme': { category: 'Sejarah', name: 'Kolase Arsip Jurnalisme' },
-  'ukiran-sketsa': { category: 'Sejarah', name: 'Ukiran Sketsa Klasik' },
-  'retro-crt': { category: 'Sejarah', name: 'Monitor Retro CRT 8-Bit' },
-  'peta-perkamen': { category: 'Peta', name: 'Peta Pelayaran Perkamen' },
-  'kisah-islami': { category: 'Islami', name: 'Cahaya Hikmah & Tadabbur' },
-  'manuskrip-emas': { category: 'Islami', name: 'Manuskrip Geometris Emas' },
-  'geografi-skala': { category: 'Geografi', name: 'Atlas & Perbandingan Skala' },
-  'peta-atlas': { category: 'Geografi', name: 'Topografi & Penampang Bumi' },
-  'anatomi-tubuh': { category: 'Anatomi', name: 'Studio Medis & Organ Hidup' },
-  'diorama-rakyat': { category: 'Cerita Rakyat', name: 'Diorama Legenda Nusantara' },
-  'cat-air': { category: 'Cerita Rakyat', name: 'Lukisan Cat Air Organik' },
   'kartun-panggung': { category: 'Kartun', name: 'Panggung Kartun Bersendi' },
   'kartun-2d': { category: 'Animasi 2D', name: 'Dunia Vektor Paralaks 2D' },
-  'katalog-risograf': { category: 'Animasi 2D', name: 'Katalog Cetak Risograf' },
-  'infografis-kaca': { category: 'Animasi 2D', name: 'Infografis Frosted Glass' },
   'tipografi-kinetik': { category: 'Animasi 2D', name: 'Tipografi Kinetik Cepat' },
 };
+
+const PRO_ONLY_STYLES = new Set([
+  'monumen-3d', 'isometrik-mesin', 'sinematik-3d', 'dunia-hewan',
+  'biota-laut-3d', 'neon-mikro', 'tanah-liat-3d', 'kolase-jurnalisme',
+  'ukiran-sketsa', 'retro-crt', 'kisah-islami', 'manuskrip-emas',
+  'geografi-skala', 'peta-atlas', 'anatomi-tubuh', 'diorama-rakyat',
+  'cat-air', 'katalog-risograf', 'infografis-kaca',
+]);
 
 function parseArgs(argv) {
   const out = {};
@@ -66,7 +55,7 @@ function validateSceneCode(code) {
     return err.message || String(err);
   }
   if (/Math\.random\s*\(/.test(code)) {
-    return 'Dilarang memakai Math.random() agar animasi 100% deterministik. Gunakan MF.rng("seed").';
+    return 'Dilarang memakai Math.random(). Gunakan MF.rng("seed") agar deterministik.';
   }
   return null;
 }
@@ -76,7 +65,7 @@ function buildScriptMarkdown(project, styleMeta) {
     `# ${project.title}`,
     ``,
     `- **Ide Awal:** ${project.idea || '-'}`,
-    `- **Kategori & Gaya:** ${styleMeta.category} — ${styleMeta.name} (\`${project.style}\`)`,
+    `- **Kategori & Gaya (Community Free):** ${styleMeta.category} — ${styleMeta.name} (\`${project.style}\`)`,
     `- **Format & Durasi:** \`${project.aspectRatio}\` (Responsif \`9:16\` ↔ \`16:9\`) · \`${project.duration} detik\``,
   ];
 
@@ -92,15 +81,9 @@ function buildScriptMarkdown(project, styleMeta) {
   }
 
   lines.push(``, `## Naskah & Urutan Adegan`, ``);
-  const scenes = Array.isArray(project.scenes) ? project.scenes : [];
-  scenes.forEach((sc, idx) => {
+  (project.scenes || []).forEach((sc, idx) => {
     const label = sc.label || (idx === 0 ? 'HOOK' : `ADEGAN ${idx}`);
-    lines.push(
-      `### ${label} — ${sc.title || ''} (${sc.start}s – ${sc.end}s)`,
-      `**Narasi VO:**`,
-      `> ${sc.narration || '-'}`,
-      ``
-    );
+    lines.push(`### ${label} — ${sc.title || ''} (${sc.start}s – ${sc.end}s)`, `**Narasi VO:**`, `> ${sc.narration || '-'}`, ``);
     if (sc.visualBeat || sc.visualDirection) {
       lines.push(`**Arahan Visual:** ${sc.visualBeat || sc.visualDirection}`, ``);
     }
@@ -119,14 +102,10 @@ function buildStandaloneHtml(project) {
     '\nwindow.__createSfx = createWebAudioSfxPlayer;';
 
   const needsWorldMap = /realWorldMap/.test(project.sceneCode || '');
-  const worldTopoJson = needsWorldMap
-    ? readFileSync(path.join(ASSETS_DIR, 'land-110m.json'), 'utf8')
-    : 'null';
+  const worldTopoJson = needsWorldMap ? readFileSync(path.join(ASSETS_DIR, 'land-110m.json'), 'utf8') : 'null';
 
   const safeTitle = String(project.title || 'MotionCraft Animation')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   return template
     .replace('/*__PAGE_TITLE__*/', safeTitle)
@@ -143,9 +122,7 @@ function createZipBuffer(files) {
 
   for (const file of files) {
     const nameBuf = Buffer.from(file.name.replace(/\\/g, '/'), 'utf8');
-    const rawBuf = Buffer.isBuffer(file.content)
-      ? file.content
-      : Buffer.from(String(file.content), 'utf8');
+    const rawBuf = Buffer.isBuffer(file.content) ? file.content : Buffer.from(String(file.content), 'utf8');
     const crc = zlib.crc32(rawBuf) >>> 0;
     const compBuf = zlib.deflateRawSync(rawBuf);
 
@@ -161,7 +138,6 @@ function createZipBuffer(files) {
     localHeader.writeUInt32LE(rawBuf.length, 22);
     localHeader.writeUInt16LE(nameBuf.length, 26);
     localHeader.writeUInt16LE(0, 28);
-
     localParts.push(localHeader, nameBuf, compBuf);
 
     const centralHeader = Buffer.alloc(46);
@@ -182,8 +158,8 @@ function createZipBuffer(files) {
     centralHeader.writeUInt16LE(0, 36);
     centralHeader.writeUInt32LE(0, 38);
     centralHeader.writeUInt32LE(offset, 42);
-
     centralParts.push(centralHeader, nameBuf);
+
     offset += localHeader.length + nameBuf.length + compBuf.length;
   }
 
@@ -211,19 +187,30 @@ function main() {
   const specPath = path.resolve(args.spec);
   const raw = JSON.parse(readFileSync(specPath, 'utf8').replace(/^\uFEFF/, ''));
 
+  if (raw.style && PRO_ONLY_STYLES.has(raw.style)) {
+    console.error(
+      `[PRO PACK REQUIRED] Style "${raw.style}" is part of MotionCraft Pro Pack (16 Categories, 3D Cutaway Engines, Karaoke Captions, SRT Export, & up to 10-min videos). Available free styles: ${Object.keys(FREE_STYLES).join(', ')}.`
+    );
+    process.exit(1);
+  }
+
   const syntaxErr = validateSceneCode(raw.sceneCode || '');
   if (syntaxErr) {
     console.error(`[SCENE CODE ERROR]: ${syntaxErr}`);
     process.exit(1);
   }
 
-  const styleId = STYLE_LABELS[raw.style] ? raw.style : 'monumen-3d';
-  const styleMeta = STYLE_LABELS[styleId];
+  const styleId = FREE_STYLES[raw.style] ? raw.style : 'stickman-3d';
+  const styleMeta = FREE_STYLES[styleId];
   const aspectRatio = raw.aspectRatio === '16:9' ? '16:9' : '9:16';
-  const duration = Math.max(5, Math.min(600, Number(raw.duration) || 30));
+  const rawDuration = Number(raw.duration) || 30;
+  const duration = Math.max(5, Math.min(60, rawDuration));
+  if (rawDuration > 60) {
+    console.warn('[Community Edition Notice] Duration capped at 60s. Upgrade to MotionCraft Pro Pack for 1–10 minute (600s) long-form videos.');
+  }
 
   const project = {
-    id: raw.id || `mc-${Date.now()}`,
+    id: raw.id || `mc-free-${Date.now()}`,
     title: raw.title || 'MotionCraft Animation',
     idea: raw.idea || raw.title || '',
     style: styleId,
@@ -239,41 +226,13 @@ function main() {
   const outDir = path.resolve(args.outDir || path.dirname(specPath));
   mkdirSync(outDir, { recursive: true });
 
-  const slug =
-    String(project.title)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || project.id;
-
+  const slug = String(project.title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || project.id;
   const htmlContent = buildStandaloneHtml(project);
   const mdContent = buildScriptMarkdown(project, styleMeta);
   const engineJs = readFileSync(path.join(ASSETS_DIR, 'motion-engine.js'), 'utf8');
   const sfxJs = readFileSync(path.join(ASSETS_DIR, 'sfx-synth.mjs'), 'utf8');
 
-  const sceneModule = `/**
- * Proyek: ${project.title}
- * Kategori: ${styleMeta.category} (${project.style}) | Rasio Default: ${project.aspectRatio} | Durasi: ${project.duration}s
- */
-export function buildAnimation(MF, stage, tl, W, H, DUR) {
-${project.sceneCode}
-}
-`;
-
-  const pkgReadme = `# ${project.title}
-
-Dibangun menggunakan **MotionCraft Skill** (${styleMeta.category} · \`${project.aspectRatio}\` · \`${project.duration}s\`).
-
-## Cara Menonton
-Klik dua kali \`index.html\` di browser modern (Chrome / Edge / Safari / Firefox). Gunakan tombol rasio di kontrol bawah untuk berpindah langsung antara \`9:16\` Shorts dan \`16:9\` Video.
-
-## Struktur Paket
-- \`index.html\` — File mandiri siap putar (Engine v4 + WebAudio SFX tertanam langsung).
-- \`NASKAH-DAN-STORYBOARD.md\` — Rekomendasi visual & urutan naskah (\`HOOK\` -> \`ADEGAN 1..N\`).
-- \`src/scene.js\` — Kode sumber logika animasi deterministik.
-- \`src/project.json\` — Spesifikasi metadata & storyboard JSON.
-- \`engine/\` — Salinan runtime \`motion-engine.js\` & \`sfx-synth.mjs\`.
-`;
-
+  const sceneModule = `export function buildAnimation(MF, stage, tl, W, H, DUR) {\n${project.sceneCode}\n}\n`;
   const zipBuf = createZipBuffer([
     { name: 'index.html', content: htmlContent },
     { name: 'NASKAH-DAN-STORYBOARD.md', content: mdContent },
@@ -281,7 +240,6 @@ Klik dua kali \`index.html\` di browser modern (Chrome / Edge / Safari / Firefox
     { name: 'src/project.json', content: JSON.stringify(project, null, 2) },
     { name: 'engine/motion-engine.js', content: engineJs },
     { name: 'engine/sfx-synth.mjs', content: sfxJs },
-    { name: 'README.md', content: pkgReadme },
   ]);
 
   const htmlPath = path.join(outDir, `${slug}.html`);
@@ -292,23 +250,7 @@ Klik dua kali \`index.html\` di browser modern (Chrome / Edge / Safari / Firefox
   writeFileSync(zipPath, zipBuf);
   writeFileSync(mdPath, mdContent, 'utf8');
 
-  console.log(
-    JSON.stringify(
-      {
-        ok: true,
-        title: project.title,
-        category: styleMeta.category,
-        style: project.style,
-        aspectRatio: project.aspectRatio,
-        duration: project.duration,
-        htmlPath,
-        zipPath,
-        mdPath,
-      },
-      null,
-      2
-    )
-  );
+  console.log(JSON.stringify({ ok: true, edition: 'community-free', title: project.title, category: styleMeta.category, style: project.style, aspectRatio, duration, htmlPath, zipPath, mdPath }, null, 2));
 }
 
 try {

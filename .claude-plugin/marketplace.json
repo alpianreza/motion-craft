@@ -1,6 +1,6 @@
 {
   "name": "motion-craft",
-  "description": "MotionCraft — universal agent skill for 16-category 3D & 2D explainer videos and Shorts (9:16 & 16:9, up to 10 minutes).",
+  "description": "MotionCraft Community Edition — free universal agent skill for 6-category 3D & 2D explainer videos and 9:16 Shorts.",
   "owner": {
     "name": "Alpian Reza"
   },
@@ -8,9 +8,9 @@
     {
       "name": "motion-craft",
       "source": "./",
-      "displayName": "MotionCraft",
-      "description": "Build studio-grade 9:16 Shorts and 16:9 Explainer animations across 16 visual categories (3D, Isometric, House Cutaway, Stickman 3D, Astronomy GLSL, Wildlife, Ocean 3D, Science, History, Natural Earth Maps, Islamic, Geography, Anatomy, Folklore, Cartoon, 2D) as a standalone playable HTML, source ZIP, and MP4.",
-      "version": "1.0.0",
+      "displayName": "MotionCraft (Community Edition)",
+      "description": "Free 6-category agent skill (Stickman 3D, House Cutaway, Natural Earth Maps, Paper Cutout & Comic, Cartoon Stage, 2D Motion Graphics) outputting standalone playable HTML, source ZIP, and MP4.",
+      "version": "1.1.0",
       "author": {
         "name": "Alpian Reza",
         "url": "https://github.com/alpianreza"
